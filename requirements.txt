@@ -1,0 +1,12 @@
+# Versiones fijas: son las que se usaron para entrenar los modelos que estan en
+# models/. Un XGBoost distinto puede no leer el .joblib, y un pandas distinto
+# cambia el manejo de columnas categoricas.
+streamlit==1.63.0
+pandas==3.0.5
+numpy==2.5.2
+scikit-learn==1.9.1
+xgboost==3.4.1
+scipy==1.18.1
+statsmodels==0.15.0
+joblib==1.6.0
+altair==6.2.2

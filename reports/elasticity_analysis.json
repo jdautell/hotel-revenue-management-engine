@@ -1,0 +1,73 @@
+{
+  "pregunta": "Se puede estimar la elasticidad precio con este dataset?",
+  "respuesta": "No. Ver 'conclusion'.",
+  "n_celdas_panel": 5552,
+  "mco_por_especificacion": {
+    "1_sin_controles": {
+      "elasticidad": 0.4748,
+      "ic95": [
+        0.4321,
+        0.5176
+      ],
+      "r2": 0.0504,
+      "n": 5552
+    },
+    "2_hotel_y_segmento": {
+      "elasticidad": 0.3249,
+      "ic95": [
+        0.2786,
+        0.3713
+      ],
+      "r2": 0.4437,
+      "n": 5552
+    },
+    "3_mas_mes_dow_anio": {
+      "elasticidad": 0.2081,
+      "ic95": [
+        0.138,
+        0.2781
+      ],
+      "r2": 0.4681,
+      "n": 5552
+    },
+    "4_semana_del_anio": {
+      "elasticidad": 0.1842,
+      "ic95": [
+        0.1132,
+        0.2553
+      ],
+      "r2": 0.4753,
+      "n": 5552
+    }
+  },
+  "variable_instrumental": {
+    "n": 4580,
+    "primera_etapa_coef": -0.4726,
+    "primera_etapa_F": 302.7,
+    "ols_misma_muestra": {
+      "elasticidad": 0.1738,
+      "ic95": [
+        0.0912,
+        0.2564
+      ],
+      "r2": 0.4884,
+      "n": 4580
+    },
+    "iv_2sls": {
+      "elasticidad": -0.0207,
+      "ic95": [
+        -0.179,
+        0.1376
+      ],
+      "r2": 0.4859,
+      "n": 4580
+    },
+    "veredicto": "INSTRUMENTO INVALIDO. La primera etapa es negativa: el precio del otro hotel se mueve en contra, senal de sustitucion entre ambos. Si hay sustitucion, el instrumento afecta la demanda por un canal directo y se rompe la restriccion de exclusion. El IC95% del 2SLS ademas cruza el cero."
+  },
+  "supuesto_usado_en_el_optimizador": {
+    "min": -1.5,
+    "default": -1.2,
+    "max": -0.4
+  },
+  "conclusion": "Todas las especificaciones por MCO dan elasticidad POSITIVA, imposible para un bien normal, y evidencian sesgo de simultaneidad: el hotel sube tarifas cuando la demanda esta fuerte. Los controles reducen el sesgo pero no lo eliminan, y el unico instrumento disponible falla la restriccion de exclusion. Por eso la elasticidad entra al optimizador como SUPUESTO explicito con analisis de sensibilidad, no como parametro estimado. Obtenerla de verdad requiere test A/B de tarifas o datos de rate shopping."
+}

@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.venv/
+.streamlit/secrets.toml
+.DS_Store
+
+# El dataset se descarga con scripts/download_data.py (17 MB).
+data/*.csv

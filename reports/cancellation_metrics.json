@@ -1,0 +1,148 @@
+{
+  "corte_temporal": "2017-03-01 (fecha de reserva = llegada - lead time)",
+  "excluidas": "deposit_type == 'Non Refund' (artefacto de registro, ver docstring)",
+  "artefacto_deposit_type": {
+    "No Deposit": {
+      "n": 102650,
+      "tasa_cancelacion": 0.2872
+    },
+    "Non Refund": {
+      "n": 14586,
+      "tasa_cancelacion": 0.9936
+    },
+    "Refundable": {
+      "n": 162,
+      "tasa_cancelacion": 0.2222
+    }
+  },
+  "n_train": 76737,
+  "n_val": 13542,
+  "mejor_iteracion": 332,
+  "validacion": {
+    "n": 13542,
+    "tasa_base": 0.2898,
+    "roc_auc": 0.8604,
+    "pr_auc": 0.6826,
+    "brier": 0.1408,
+    "log_loss": 0.4219,
+    "calibracion": {
+      "predicho": [
+        0.0017,
+        0.009,
+        0.0553,
+        0.1459,
+        0.2524,
+        0.3516,
+        0.4719,
+        0.6232,
+        0.737,
+        0.8435
+      ],
+      "observado": [
+        0.0015,
+        0.0022,
+        0.031,
+        0.113,
+        0.1832,
+        0.2548,
+        0.3722,
+        0.5399,
+        0.6425,
+        0.7579
+      ],
+      "error_max": 0.0997
+    }
+  },
+  "prueba_out_of_time_sin_calibrar": {
+    "n": 12533,
+    "tasa_base": 0.2821,
+    "roc_auc": 0.8375,
+    "pr_auc": 0.627,
+    "brier": 0.1465,
+    "log_loss": 0.4393,
+    "calibracion": {
+      "predicho": [
+        0.0017,
+        0.0188,
+        0.0796,
+        0.1588,
+        0.2386,
+        0.3161,
+        0.3963,
+        0.504,
+        0.6459,
+        0.8131
+      ],
+      "observado": [
+        0.0,
+        0.0168,
+        0.0431,
+        0.1125,
+        0.1814,
+        0.2968,
+        0.367,
+        0.4976,
+        0.6145,
+        0.6914
+      ],
+      "error_max": 0.1217
+    }
+  },
+  "prueba_out_of_time_calibrado": {
+    "n": 12533,
+    "tasa_base": 0.2821,
+    "roc_auc": 0.837,
+    "pr_auc": 0.6186,
+    "brier": 0.1468,
+    "log_loss": 0.4399,
+    "calibracion": {
+      "predicho": [
+        0.0004,
+        0.0129,
+        0.0523,
+        0.1231,
+        0.1878,
+        0.2309,
+        0.317,
+        0.3948,
+        0.5707,
+        0.7258
+      ],
+      "observado": [
+        0.0007,
+        0.0197,
+        0.0486,
+        0.1371,
+        0.183,
+        0.2962,
+        0.378,
+        0.4913,
+        0.6283,
+        0.688
+      ],
+      "error_max": 0.0965
+    }
+  },
+  "decision_calibracion": "Se publican las probabilidades SIN calibrar. La isotonica no mejora porque la descalibracion viene de un cambio de tasa base (38.5% -> 28.2%), no del modelo. Recalibrar con 30 dias del periodo de prueba tambien empeoro (Brier 0.1482 -> 0.1509).",
+  "baseline_tasa_base": {
+    "brier": 0.2025,
+    "log_loss": 0.595
+  },
+  "top_variables": {
+    "required_car_parking_spaces": 0.1839,
+    "previous_cancellations": 0.1324,
+    "total_of_special_requests": 0.0868,
+    "market_segment": 0.0833,
+    "customer_type": 0.0655,
+    "arrival_year": 0.0589,
+    "booking_changes": 0.0432,
+    "country_grouped": 0.0395,
+    "lead_time": 0.034,
+    "previous_bookings_not_canceled": 0.032,
+    "days_in_waiting_list": 0.0184,
+    "distribution_channel": 0.0183,
+    "hotel": 0.0178,
+    "meal": 0.0166,
+    "total_nights": 0.016
+  }
+}
