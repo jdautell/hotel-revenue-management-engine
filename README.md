@@ -211,6 +211,50 @@ ingreso.
 
 ---
 
+## Dónde se fuga el ingreso
+
+Antes del motor, la pregunta comercial: de todo lo que se reserva, ¿cuánto entra
+a caja?
+
+```
+Valor bruto reservado   $42.7 M
+Ingreso retenido        $29.6 M
+Fuga por cancelación    $13.1 M   (30.7%)
+```
+
+**De cada peso reservado se pierden 31 centavos.** Esa es la magnitud que
+justifica modelar el riesgo en lugar de ignorarlo.
+
+Valor por solicitud recibida, por segmento:
+
+| Segmento | Reservas | ADR | Cancelación | No reemb. | Bruto/solicitud | **Neto/solicitud** | Fuga |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Direct | 12,361 | $107.00 | 15.4% | 0% | $411.88 | **$331.79** | 19.4% |
+| Offline TA/TO | 23,884 | $86.56 | 34.6% | 21% | $341.08 | **$294.03** | 13.8% |
+| Online TA | 56,089 | $110.00 | 36.9% | 0% | $426.73 | **$244.61** | **42.7%** |
+| Groups | 19,557 | $70.53 | 61.7% | 47% | $238.77 | **$205.77** | 13.8% |
+| Corporate | 5,211 | $65.00 | 18.9% | 6% | $148.58 | **$123.25** | 17.1% |
+
+Tres lecturas que cambian decisiones:
+
+1. **El segmento que más cancela no es el que más dinero pierde.** Groups cancela
+   el 61.7% pero solo fuga el 13.8% del valor, porque casi la mitad de sus
+   reservas son no reembolsables. Online TA cancela el 36.9% y fuga el **42.7%**,
+   porque prácticamente ninguna lo es.
+2. **Por eso la palanca no es "reducir cancelaciones" sino mover la mezcla hacia
+   tarifas que retengan ingreso.** Es una decisión de política tarifaria, no de
+   operación.
+3. **El ranking de canales se invierte.** Por ADR, Online TA parece el mejor
+   canal ($110 vs $107 de Direct). Por valor **neto** por solicitud, Direct lo
+   supera en **36%**. Cualquier decisión de mezcla tomada sobre ADR va en la
+   dirección equivocada.
+
+Y el riesgo crece de forma monótona con la anticipación —9.7% dentro de 7 días,
+55.9% a más de 180— que es justo el gradiente que justifica proteger inventario
+para la demanda tardía.
+
+---
+
 ## Métricas del modelo de cancelación
 
 Partición **temporal por fecha de reserva** (llegada − lead time), no aleatoria:
@@ -267,6 +311,7 @@ python scripts/run_pipeline.py      # modelo, calibración de demanda, elasticid
 │   ├── train_cancellation.py     modelo de cancelación + métricas + calibración
 │   ├── demand.py                 capacidad, escalera tarifaria, demanda por clase
 │   ├── estimate_elasticity.py    el intento de estimar elasticidad y por qué falla
+│   ├── insights.py               análisis de fuga de ingreso por segmento y canal
 │   └── optimizer.py              EMSR-b, curva de demanda, sobreventa, optimización
 ├── models/                       artefactos entrenados (versionados)
 ├── reports/                      métricas y análisis en JSON

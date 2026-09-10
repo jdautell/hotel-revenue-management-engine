@@ -47,10 +47,11 @@ def load_artifacts():
     calib = json.loads((ROOT / "models" / "demand_calibration.json").read_text(encoding="utf-8"))
     metrics = json.loads((ROOT / "reports" / "cancellation_metrics.json").read_text(encoding="utf-8"))
     elasticity = json.loads((ROOT / "reports" / "elasticity_analysis.json").read_text(encoding="utf-8"))
-    return bundle, calib, metrics, elasticity
+    insights = json.loads((ROOT / "reports" / "business_insights.json").read_text(encoding="utf-8"))
+    return bundle, calib, metrics, elasticity, insights
 
 
-bundle, CAL, METRICS, ELAST = load_artifacts()
+bundle, CAL, METRICS, ELAST, INSIGHTS = load_artifacts()
 
 st.title("Motor de Revenue Management")
 st.caption(
@@ -168,8 +169,9 @@ if res.optimal_price <= res.bid_price * 1.001:
         "demanda de tarifa alta que todavía se espera."
     )
 
-tab1, tab2, tab3, tab4 = st.tabs(
-    ["Curva de ingreso", "Control de inventario", "Sensibilidad", "Metodología y datos"]
+tab1, tab2, tab3, tab5, tab4 = st.tabs(
+    ["Curva de ingreso", "Control de inventario", "Sensibilidad",
+     "Dónde se fuga el ingreso", "Metodología y datos"]
 )
 
 # ---------------------------------------------------------------- curva
@@ -279,6 +281,67 @@ with tab3:
         "Si la recomendación cambia mucho entre −0.8 y −1.5, la decisión no está sostenida por "
         "los datos sino por el supuesto. Es la primera cosa que habría que resolver con un test "
         "A/B de tarifas antes de llevar esto a producción."
+    )
+
+# ---------------------------------------------------------- negocio
+with tab5:
+    T = INSIGHTS["total"]
+    st.markdown("#### De todo lo que se reserva, ¿cuánto entra a caja?")
+    f1, f2, f3 = st.columns(3)
+    f1.metric("Valor bruto reservado", f"${T['valor_bruto_reservado'] / 1e6:,.1f} M")
+    f2.metric("Ingreso retenido", f"${T['ingreso_retenido'] / 1e6:,.1f} M")
+    f3.metric("Fuga por cancelación", f"${T['fuga_por_cancelacion'] / 1e6:,.1f} M",
+              f"-{T['fuga_pct']:.1f}%", delta_color="inverse")
+    st.caption(
+        "Valor bruto = ADR × noches. Se retiene el ingreso si no hay cancelación, "
+        "o si la tarifa es no reembolsable. Esta es la magnitud que justifica "
+        "modelar el riesgo en vez de ignorarlo."
+    )
+
+    seg = pd.DataFrame(INSIGHTS["por_segmento"]).T
+    seg.index.name = "Segmento"
+    tabla = pd.DataFrame({
+        "Reservas": seg["reservas"].map(lambda v: f"{int(v):,}"),
+        "ADR mediano": seg["adr_mediano"].map(lambda v: f"${v:,.2f}"),
+        "Cancelación": seg["tasa_cancelacion"].map(lambda v: f"{v:.1%}"),
+        "No reembolsable": seg["pct_no_reembolsable"].map(lambda v: f"{v:.0%}"),
+        "Valor bruto/solicitud": seg["valor_bruto_por_reserva"].map(lambda v: f"${v:,.2f}"),
+        "Valor NETO/solicitud": seg["valor_neto_por_reserva"].map(lambda v: f"${v:,.2f}"),
+        "Fuga": seg["fuga_pct"].map(lambda v: f"{v:.1f}%"),
+    }).reset_index()
+    st.dataframe(tabla, width="stretch", hide_index=True)
+
+    comp = seg.reset_index().melt(
+        "Segmento", ["valor_bruto_por_reserva", "valor_neto_por_reserva"], "tipo", "valor"
+    )
+    comp["tipo"] = comp["tipo"].map({
+        "valor_bruto_por_reserva": "Bruto", "valor_neto_por_reserva": "Neto",
+    })
+    st.altair_chart(
+        alt.Chart(comp).mark_bar().encode(
+            x=alt.X("valor:Q", title="Valor por solicitud recibida ($)"),
+            y=alt.Y("Segmento:N", sort="-x", title=None),
+            color=alt.Color("tipo:N", title=None),
+            yOffset="tipo:N",
+        ).properties(height=260),
+        width="stretch",
+    )
+
+    for s_ in INSIGHTS["lecturas"]:
+        st.markdown(f"- {s_}")
+
+    lead = pd.DataFrame(INSIGHTS["por_anticipacion"]).T.reset_index(names="Tramo")
+    st.altair_chart(
+        alt.Chart(lead).mark_bar().encode(
+            x=alt.X("Tramo:N", sort=None, title="Anticipación de la reserva"),
+            y=alt.Y("tasa_cancelacion:Q", title="Tasa de cancelación",
+                    axis=alt.Axis(format="%")),
+        ).properties(height=240),
+        width="stretch",
+    )
+    st.caption(
+        "El riesgo crece de forma monótona con la anticipación. Es el gradiente que "
+        "justifica proteger inventario para la demanda tardía, que además cancela menos."
     )
 
 # ------------------------------------------------------- metodologia

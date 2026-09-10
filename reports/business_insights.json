@@ -1,0 +1,110 @@
+{
+  "total": {
+    "reservas": 117398,
+    "valor_bruto_reservado": 42708813.15,
+    "ingreso_retenido": 29585913.06,
+    "fuga_por_cancelacion": 13122900.09,
+    "fuga_pct": 30.73
+  },
+  "por_segmento": {
+    "Direct": {
+      "reservas": 12361,
+      "adr_mediano": 107.0,
+      "noches_promedio": 3.238,
+      "tasa_cancelacion": 0.154,
+      "pct_no_reembolsable": 0.0015,
+      "valor_bruto": 5091252.22,
+      "valor_neto": 4101308.0,
+      "valor_bruto_por_reserva": 411.8803,
+      "valor_neto_por_reserva": 331.7942,
+      "fuga_pct": 19.444
+    },
+    "Offline TA/TO": {
+      "reservas": 23884,
+      "adr_mediano": 86.565,
+      "noches_promedio": 3.9364,
+      "tasa_cancelacion": 0.3463,
+      "pct_no_reembolsable": 0.2096,
+      "valor_bruto": 8146250.09,
+      "valor_neto": 7022623.82,
+      "valor_bruto_por_reserva": 341.0756,
+      "valor_neto_por_reserva": 294.0305,
+      "fuga_pct": 13.7932
+    },
+    "Online TA": {
+      "reservas": 56089,
+      "adr_mediano": 110.0,
+      "noches_promedio": 3.5882,
+      "tasa_cancelacion": 0.3694,
+      "pct_no_reembolsable": 0.001,
+      "valor_bruto": 23934785.2,
+      "valor_neto": 13719809.57,
+      "valor_bruto_por_reserva": 426.7287,
+      "valor_neto_por_reserva": 244.6078,
+      "fuga_pct": 42.6784
+    },
+    "Groups": {
+      "reservas": 19557,
+      "adr_mediano": 70.53,
+      "noches_promedio": 2.9955,
+      "tasa_cancelacion": 0.6173,
+      "pct_no_reembolsable": 0.469,
+      "valor_bruto": 4669673.5,
+      "valor_neto": 4024218.59,
+      "valor_bruto_por_reserva": 238.7725,
+      "valor_neto_por_reserva": 205.7687,
+      "fuga_pct": 13.8223
+    },
+    "Corporate": {
+      "reservas": 5211,
+      "adr_mediano": 65.0,
+      "noches_promedio": 2.0902,
+      "tasa_cancelacion": 0.1894,
+      "pct_no_reembolsable": 0.0641,
+      "valor_bruto": 774275.26,
+      "valor_neto": 642272.19,
+      "valor_bruto_por_reserva": 148.5848,
+      "valor_neto_por_reserva": 123.2532,
+      "fuga_pct": 17.0486
+    }
+  },
+  "por_anticipacion": {
+    "0-7 dias": {
+      "reservas": 18601,
+      "tasa_cancelacion": 0.0969,
+      "adr_mediano": 88.0,
+      "valor_neto_por_reserva": 177.7219
+    },
+    "8-30 dias": {
+      "reservas": 18648,
+      "tasa_cancelacion": 0.2814,
+      "adr_mediano": 99.0,
+      "valor_neto_por_reserva": 238.8112
+    },
+    "31-90 dias": {
+      "reservas": 29294,
+      "tasa_cancelacion": 0.3793,
+      "adr_mediano": 97.0,
+      "valor_neto_por_reserva": 259.9215
+    },
+    "91-180 dias": {
+      "reservas": 26304,
+      "tasa_cancelacion": 0.4487,
+      "adr_mediano": 100.3,
+      "valor_neto_por_reserva": 303.5886
+    },
+    "mas de 180": {
+      "reservas": 22452,
+      "tasa_cancelacion": 0.5585,
+      "adr_mediano": 90.0,
+      "valor_neto_por_reserva": 260.7139
+    }
+  },
+  "lecturas": [
+    "De cada peso reservado se pierden 31 centavos por cancelacion. Esa es la magnitud del problema que justifica el modelo de riesgo.",
+    "El segmento que mas cancela NO es el que mas dinero pierde. Groups cancela 62% pero solo fuga 14% del valor, porque casi la mitad de sus reservas son no reembolsables. Online TA cancela 37% y fuga 43%, porque practicamente todas son reembolsables.",
+    "Por eso la palanca no es 'reducir cancelaciones' sino 'mover mezcla hacia tarifas que retengan ingreso'.",
+    "Ordenados por ADR, Online TA parece el mejor canal. Ordenados por valor NETO por solicitud, Direct lo supera por 36%. El ranking se invierte y con el la decision de mezcla de canal.",
+    "El riesgo de cancelacion crece de forma monotona con la anticipacion: 9.7% dentro de 7 dias, 55.9% a mas de 180. Es el gradiente que justifica proteger inventario para la demanda tardia."
+  ]
+}
