@@ -4,7 +4,7 @@ Sistema de decisión tarifaria que combina **control de inventario EMSR-b**, un
 **modelo de riesgo de cancelación** entrenado con datos reales, y una **curva de
 demanda cuyo supuesto está declarado y es ajustable**.
 
-> 🔗 **Demo interactivo:** _(pendiente de despliegue)_
+> 🔗 **Demo interactivo:** https://hotel-revenue-management.streamlit.app
 > 📊 **Datos:** 119,390 reservas de dos hoteles portugueses, 2015–2017
 
 ---
