@@ -19,6 +19,7 @@ import streamlit as st
 ROOT = Path(__file__).parent
 sys.path.insert(0, str(ROOT / "src"))
 
+import network as nw  # noqa: E402
 from optimizer import (  # noqa: E402
     Booking,
     bid_price,
@@ -169,9 +170,9 @@ if res.optimal_price <= res.bid_price * 1.001:
         "demanda de tarifa alta que todavía se espera."
     )
 
-tab1, tab2, tab3, tab5, tab4 = st.tabs(
-    ["Curva de ingreso", "Control de inventario", "Sensibilidad",
-     "Dónde se fuga el ingreso", "Metodología y datos"]
+tab1, tab2, tab6, tab3, tab5, tab4 = st.tabs(
+    ["Curva de ingreso", "Control de inventario", "Estancias multinoche",
+     "Sensibilidad", "Dónde se fuga el ingreso", "Metodología y datos"]
 )
 
 # ---------------------------------------------------------------- curva
@@ -262,6 +263,96 @@ with tab2:
         "Presentados ~ Binomial(autorización, 1 − tasa de cancelación). Se autoriza el máximo "
         f"que mantiene P(presentados > capacidad) ≤ {tol:.0%}."
     )
+
+# ------------------------------------------------------------- red
+with tab6:
+    st.markdown("#### Una reserva de tres noches consume inventario de tres fechas")
+    st.markdown(
+        "EMSR-b controla **una noche**. Si la estancia cruza un jueves vacío y un "
+        "sábado lleno, cotizar con el piso del jueves regala la habitación del "
+        "sábado. El piso correcto es la **suma de los costos de oportunidad** de "
+        "cada noche, y esos salen de las variables duales de un programa lineal."
+    )
+
+    n1, n2, n3 = st.columns(3)
+    cap_semana = n1.slider("Libres entre semana", 5, capacity, min(150, capacity), key="cs")
+    cap_finde = n2.slider("Libres viernes y sábado", 1, capacity, min(35, capacity), key="cf")
+    horizonte = n3.slider("Horizonte (días de llegada)", 7, 21, 10, key="hz")
+
+    los_probs = {int(k): v for k, v in H["distribucion_los"].items()}
+    n_nights = horizonte + max(los_probs) - 1
+    dem_wknd = H["demanda_por_clase"].get(season, {}).get("1", {})
+    dem_week = H["demanda_por_clase"].get(season, {}).get("0", {})
+
+    def _mu(src):
+        return [src.get(str(i), {}).get("mu", 1.0) for i in range(len(fares))]
+
+    es_finde = [(i % 7) in (3, 4) for i in range(n_nights)]
+    demanda_red = [_mu(dem_wknd if es_finde[d] else dem_week) for d in range(horizonte)]
+    capacidad_red = [float(cap_finde if es_finde[i] else cap_semana) for i in range(n_nights)]
+
+    try:
+        sol = nw.solve(horizonte, fares, demanda_red, los_probs, capacidad_red)
+    except Exception as exc:  # el LP puede no converger con capacidades extremas
+        st.error(f"El programa lineal no encontró solución: {exc}")
+        sol = None
+
+    if sol is not None:
+        bid_df = pd.DataFrame({
+            "Noche": [f"d{i}" for i in range(horizonte)],
+            "Bid price": sol.bid_prices[:horizonte],
+            "Tipo": ["Viernes/sábado" if es_finde[i] else "Entre semana"
+                     for i in range(horizonte)],
+        })
+        st.altair_chart(
+            alt.Chart(bid_df).mark_bar().encode(
+                x=alt.X("Noche:N", sort=None),
+                y=alt.Y("Bid price:Q", title="Costo de oportunidad ($/noche)"),
+                color=alt.Color("Tipo:N", title=None),
+            ).properties(height=260),
+            width="stretch",
+        )
+        st.caption(
+            f"Ingreso del plan óptimo sobre el horizonte: **${sol.revenue:,.0f}**. "
+            "Las noches con holgura tienen bid price cero: una habitación más no "
+            "genera ingreso adicional. Eso es correcto como desplazamiento, pero "
+            "inservible como piso por sí solo — por eso se combina con EMSR-b."
+        )
+
+        llegada = st.select_slider(
+            "Día de llegada de la solicitud", list(range(horizonte)),
+            value=min(2, horizonte - 1), format_func=lambda d: f"d{d}"
+            + (" (viernes/sábado)" if es_finde[d] else ""), key="lleg",
+        )
+        piso_emsrb = bid_price(cap_finde if es_finde[llegada] else cap_semana,
+                               fares, protections)
+
+        filas = []
+        for L in range(1, min(6, max(los_probs)) + 1):
+            if llegada + L > n_nights:
+                break
+            filas.append({
+                "Estancia": f"{L} noche" + ("s" if L > 1 else ""),
+                "Solo EMSR-b": f"${piso_emsrb:,.2f}",
+                "Solo red": f"${nw.min_acceptable_adr(sol, llegada, L):,.2f}",
+                "Piso aplicado": f"${nw.combined_floor(sol, llegada, L, piso_emsrb):,.2f}",
+                "Desplazamiento total": f"${nw.stay_floor(sol, llegada, L):,.2f}",
+            })
+        st.dataframe(pd.DataFrame(filas), width="stretch", hide_index=True)
+        st.caption(
+            "«Piso aplicado» es el máximo de los dos controles: la tarifa tiene que "
+            "cubrir a la vez el desplazamiento que causa en la red y el control de "
+            "clases de su noche de llegada."
+        )
+
+        st.info(
+            "**Limitaciones del DLP, declaradas:** es determinístico —sustituye la "
+            "demanda por su media e ignora la variabilidad—, así que bajo capacidad "
+            "muy apretada produce duales extremos, más altos que cualquier tarifa "
+            "individual. El remedio estándar es volver a resolver conforme entra "
+            "demanda (*re-solving*), que es lo que ocurre aquí cada vez que cambias "
+            "la capacidad restante."
+        )
 
 # ------------------------------------------------------ sensibilidad
 with tab3:

@@ -36,6 +36,8 @@ sobre qué parte está sostenida por datos y qué parte por supuestos**.
 | Tarifa vigente del segmento | **Dato observado** | Mediana de ADR por hotel × segmento × mes |
 | P(cancelación) | **Modelo entrenado** | XGBoost · AUC out-of-time **0.8375** |
 | Niveles de protección | **Fórmula estándar** | EMSR-b (Belobaba, 1989) |
+| Bid prices por fecha | **Fórmula estándar** | Duales del DLP de red (Talluri & van Ryzin) |
+| Duración de estancia | **Dato observado** | Distribución de LOS por hotel, verificada como estable entre clases |
 | Límite de sobreventa | **Fórmula estándar** | Cola binomial de presentados vs. capacidad |
 | Elasticidad precio | ⚠️ **Supuesto** | No es estimable con estos datos — ver abajo |
 | Conversión base | ⚠️ **Supuesto** | El dataset no registra solicitudes que no convirtieron |
@@ -80,7 +82,60 @@ Comportamiento verificado (City Hotel, temporada alta, fin de semana):
 | 25 | Y · B | $113.52 |
 | 15 | Y | $159.62 |
 
-### 2. Curva de demanda
+### 2. Red multinoche → bid price por fecha
+
+EMSR-b controla una noche. Una reserva de tres consume inventario de **tres
+fechas con demanda distinta**: si cruza un jueves vacío y un sábado lleno,
+cotizar con el piso del jueves regala la habitación del sábado.
+
+Programa lineal determinístico (DLP), la formulación canónica de network revenue
+management:
+
+```
+max   Σ_j  r_j · x_j
+s.a.  Σ_j  a_ij · x_j  ≤  c_i        para cada noche i
+      0 ≤ x_j ≤ E[D_j]
+
+  j      = producto (fecha de llegada, duración, clase)
+  r_j    = tarifa_clase × duración
+  a_ij   = 1 si el producto j ocupa la noche i
+  c_i    = habitaciones disponibles la noche i
+```
+
+Las **variables duales** de las restricciones de capacidad son los bid prices
+por fecha: cuánto ingreso adicional generaría una habitación más esa noche. Una
+estancia se acepta si su ingreso cubre la **suma** de los bid prices de sus
+noches (*additive bid price control*).
+
+Ejemplo con temporada alta, 150 libres entre semana y 35 el fin de semana:
+
+```
+noche   d0   d1   d2   d3*  d4*  d5   d6
+bid   $  0  $ 0  $ 0  $341 $341 $ 0  $ 0      (* = viernes/sábado)
+```
+
+| Estancia desde el jueves | Solo EMSR-b | Solo red | **Piso aplicado** |
+|---|---:|---:|---:|
+| 1 noche | $69.06 | $0.00 | **$69.06** |
+| 2 noches | $69.06 | $170.28 | **$170.28** |
+| 3 noches | $69.06 | $227.04 | **$227.04** |
+| 5 noches | $69.06 | $136.22 | **$136.22** |
+
+Cotizar las tres noches con el piso del jueves dejaría $474 sobre la mesa.
+
+**Los dos controles se combinan, no se sustituyen.** El dual vale cero cuando la
+capacidad de esa noche no está activa —correcto como desplazamiento, inservible
+como piso—, así que se toma el máximo entre el piso de red y el de EMSR-b: la
+tarifa debe cubrir a la vez el desplazamiento en la red y el control de clases de
+su noche de llegada.
+
+**Limitaciones declaradas:** el DLP es determinístico, sustituye la demanda por
+su media e ignora la variabilidad; bajo capacidad muy apretada produce duales
+extremos, más altos que cualquier tarifa individual. El remedio estándar es
+resolver de nuevo conforme entra demanda (*re-solving*), que es lo que hace el
+dashboard cada vez que cambia la capacidad restante.
+
+### 3. Curva de demanda
 
 Disposición a pagar logística, calibrada con **dos condiciones que el analista
 elige y puede discutir**:
@@ -101,7 +156,7 @@ ingreso esperado es monótono en el precio, así que el óptimo siempre cae en u
 extremo del intervalo. Eso no es un óptimo económico, es un artefacto de la
 especificación. La logística sí tiene óptimo interior.
 
-### 3. Ingreso esperado ajustado por riesgo
+### 4. Ingreso esperado ajustado por riesgo
 
 ```
 R(p) = p × noches × P(reserva | p) × [ (1 − pc(p)) + pc(p) · retención ]
@@ -114,7 +169,7 @@ precio candidato** — la tarifa es una de sus variables, así que el modelo for
 parte de la derivada, no es decorativo. `retención` vale 1.0 en tarifas no
 reembolsables y 0.0 en reembolsables.
 
-### 4. Sobreventa
+### 5. Sobreventa
 
 Presentados ~ `Binomial(A, 1 − tasa de cancelación)`. Se autoriza el mayor `A`
 tal que `P(presentados > capacidad) ≤ tolerancia`.
@@ -312,6 +367,7 @@ python scripts/run_pipeline.py      # modelo, calibración de demanda, elasticid
 │   ├── demand.py                 capacidad, escalera tarifaria, demanda por clase
 │   ├── estimate_elasticity.py    el intento de estimar elasticidad y por qué falla
 │   ├── insights.py               análisis de fuga de ingreso por segmento y canal
+│   ├── network.py                DLP de red: bid prices por fecha, control multinoche
 │   └── optimizer.py              EMSR-b, curva de demanda, sobreventa, optimización
 ├── models/                       artefactos entrenados (versionados)
 ├── reports/                      métricas y análisis en JSON
@@ -326,10 +382,10 @@ Honestamente, y en orden de importancia:
 
 1. **Elasticidad medida, no asumida.** Un test A/B de tarifas por segmento, o
    datos de rate shopping de la competencia. Es lo primero que haría.
-2. **Optimización a nivel de estancia, no de noche.** EMSR-b controla una noche
-   a la vez. Una reserva de 3 noches consume inventario de 3 fechas con
-   demandas distintas; lo correcto es *network revenue management* con bid
-   prices por fecha (programación lineal, descomposición determinística).
+2. **DLP estocástico o descomposición.** El modelo de red ya está
+   (`src/network.py`), pero es determinístico. Las siguientes versiones son el
+   *randomized linear program* o la descomposición por fecha, que sí usan la
+   distribución de la demanda en vez de su media.
 3. **Curvas de reserva (*booking curves*).** El pronóstico de demanda por clase
    aquí es estático. En producción se actualiza conforme entra la demanda, por
    días restantes a la llegada.

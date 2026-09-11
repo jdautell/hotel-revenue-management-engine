@@ -7,6 +7,15 @@
   "hoteles": {
     "City Hotel": {
       "capacidad_estimada": 230,
+      "distribucion_los": {
+        "1": 0.1946,
+        "2": 0.2386,
+        "3": 0.2617,
+        "4": 0.17,
+        "5": 0.071,
+        "6": 0.0246,
+        "7": 0.0395
+      },
       "ocupacion_diaria": {
         "media": 174.2,
         "p50": 196.0,
@@ -200,6 +209,15 @@
     },
     "Resort Hotel": {
       "capacidad_estimada": 190,
+      "distribucion_los": {
+        "1": 0.2299,
+        "2": 0.1552,
+        "3": 0.1343,
+        "4": 0.1168,
+        "5": 0.0669,
+        "6": 0.0423,
+        "7": 0.2547
+      },
       "ocupacion_diaria": {
         "media": 146.1,
         "p50": 167.0,

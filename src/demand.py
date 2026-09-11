@@ -14,6 +14,11 @@ Que produce:
   3. DEMANDA POR CLASE: media y desviacion estandar de reservas por fecha de
      llegada, segmentada por temporada y por fin de semana. EMSR-b necesita
      exactamente eso: mu_k y sigma_k por clase.
+  4. DISTRIBUCION DE DURACION DE ESTANCIA (LOS), necesaria para el modelo de
+     red: una reserva de tres noches consume inventario de tres fechas. Se
+     verifico que la distribucion es practicamente identica entre clases
+     tarifarias (duracion media 2.89-2.95 noches en las cuatro), asi que se
+     guarda una sola por hotel en vez de una por clase.
 
 La demanda se cuenta sobre reservas NO canceladas, que es la demanda que
 realmente consume inventario.
@@ -32,6 +37,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MODELS = ROOT / "models"
 
 N_CLASSES = 4
+MAX_LOS = 7  # estancias mas largas se agrupan en 7 noches
 CLASS_NAMES = ["Y (alta)", "B (media-alta)", "M (media-baja)", "Q (baja)"]
 
 # Ventana con cobertura completa de los dos hoteles.
@@ -125,8 +131,13 @@ def build_calibration(csv_path: str | Path) -> dict:
                 "n_fechas": int(row["size"]),
             }
 
+        los = (
+            sold["total_nights"].clip(upper=MAX_LOS).value_counts(normalize=True).sort_index()
+        )
+
         out["hoteles"][hotel] = {
             "capacidad_estimada": capacity,
+            "distribucion_los": {str(int(k)): round(float(v), 4) for k, v in los.items()},
             "ocupacion_diaria": {
                 "media": round(float(occ.mean()), 1),
                 "p50": float(occ.median()),
@@ -164,6 +175,8 @@ def main() -> None:
         print("  escalera tarifaria:")
         for c in h["clases"]:
             print(f"    {c['id']}  {c['nombre']:<16} ${c['tarifa']:>7.2f}   n={c['n_reservas']:,}")
+        los_txt = "  ".join(f"{k}n={v:.3f}" for k, v in h["distribucion_los"].items())
+        print(f"  duracion de estancia: {los_txt}")
         alta = h["demanda_por_clase"].get("alta", {}).get("1", {})
         if alta:
             print("  demanda en temporada alta, fin de semana (mu / sigma por clase):")
